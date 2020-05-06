@@ -5,15 +5,12 @@ const { conversationStarters, defaultMessage } = require('./constants');
 const GROUP_SIZE = parseInt(process.env.SLACK_SIZE, 10);
 
 const getCurrentCredentialsFile = async () => {
-  const s3 = new AWS.S3({
-    accessKeyId: process.env.S3_ACCESS_KEY_ID,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-  });
+  const s3 = new AWS.S3();
 
   try {
     const params = {
-      Bucket: process.env.BUCKET_NAME,
-      Key: process.env.BUCKET_FILE_NAME,
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: process.env.S3_TOKEN_FILE_NAME,
     };
 
     const data = await s3.getObject(params).promise();
