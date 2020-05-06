@@ -45,7 +45,7 @@ functions:
       - schedule:
           name: draw-groups
           description: Sortear os grupos de conversar no slack
-          rate: cron(0 12 * * ? *)
+          rate: cron(0 12 * * WED *)
 
 resources:
   Resources:
