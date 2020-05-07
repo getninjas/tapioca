@@ -1,0 +1,55 @@
+service: tapioca
+
+frameworkVersion: ">=1.28.0 <2.0.0"
+
+custom:
+  s3BucketName: tapioca-slack
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 128
+  timeout: 30
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "s3:*"
+      Resource:
+        Fn::Join:
+          - ''
+          - - 'arn:aws:s3:::'
+            - ${self:custom.s3BucketName}/*
+  environment:
+    S3_BUCKET_NAME: ${self:custom.s3BucketName}
+    S3_TOKEN_FILE_NAME: slack-credentials
+    APP_CLIENT_ID:
+    APP_CLIENT_SECRET:
+    SUCCESS_TAPIOCA_PAGE: "https://http.cat/200"
+    FAIL_TAPIOCA_PAGE: "https://http.cat/500"
+    SLACK_SIZE: 4
+
+functions:
+  Oauth:
+    name: tapioca-oauth-${opt:stage}
+    handler: oauthLambda.handler
+    events:
+      - http:
+          path: /tapioca-auth
+          method: GET
+
+  Tapioca:
+    name: tapioca-draw-${opt:stage}
+    handler: tapiocaLambda.handler
+    events:
+      - schedule:
+          name: draw-groups
+          description: Sortear os grupos de conversar no slack
+          rate: cron(0 12 * * WED *)
+
+resources:
+  Resources:
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.s3BucketName}

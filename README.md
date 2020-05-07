@@ -1,93 +1,73 @@
-# tapioca
-**tapioca** is a [slack](https://slack.com/) [app](https://api.slack.com/start), that will make conversation groups with
- random people inside your 
-organization and suggest something to talk about!
+# Tapioca
 
-## How to use it? (for users)
+**Tapioca** is a [slack](https://slack.com/) [app](https://api.slack.com/start), that will make conversation groups with random people inside your organization and suggest something to talk about!
+
+## How to use it
+
+You have two diffent ways to use. If you don't wanna customize nothing. Just follow the default paramters option. But if you want to customize some rules, go to the other option.
+
+### With default parameters
 
 Just enter on https://www.yuca.live/tapioca/ and press on **Add Tapioca to Slack** and follow instructions.
-This will create a new channel named **tapioca-time**. Then you can invite people to join the channel. 
-**tapioca** will take care of the rest, making groups with folks to talk and suggesting topics to them talk about.
+This will create a new channel named **tapioca-time**. Then you can invite people to join the channel.
+**Tapioca** will take care of the rest, making groups with folks to talk and suggesting topics to them talk about.
 
+### With Customization
 
-## How to deploy or make a clone of it? (for devs)
-
-If you want, you can keep using the version hosted by [Yuca](https://www.yuca.live/),
-but if you want to deploy your own version of **tapioca** app, it will require you to make a new 
-[Slack App](https://api.slack.com/start) and   
+You will need to follow some instructions to deploy the tapioca app in your own infrastructure
+This option will require you to make a new [Slack App](https://api.slack.com/start) and
 [Amazon Web Services](https://aws.amazon.com/) account to run for now.
 
-The only required service so far is the [S3](https://aws.amazon.com/s3/) that is where it stores the **slack**'s oauth 
-tokens.
+From AWS you will use:
 
-We suggest to deploy using [Lambda](https://aws.amazon.com/lambda/) with 
-[API Gateway](https://aws.amazon.com/api-gateway/) as we did.
+- S3 - Storage the auth token
+- Lambda - Run the Oauth scritpt and draw script (to create random conversations)
+- Api Gateway - Create a URL to trigger Oauth Script and receive the calback from slack install button
 
-It will require two lambda functions:
+We suggest to deploy using [serverless framework](https://www.serverless.com/).
 
-#### 1. `oauthLambda.js`
- This function will receive the Oauth hook from **slack** and save workspace token to be used later.
- As Trigger for this lambda add an API Gateway endpoint, and save this URL on your slack app webhook. 
-#### 2. `tapiocaLambda.js` 
- This function will require some kind of scheduled run, we use a CloudWatch Events/EventBridge, that is a CRON 
- to schedule when it should run. We use: `cron(30 20 ? * MON,WED,FRI *)`
+## Architecture
 
-## How to build and run it?
-First things first, if you will use Lambda to deploy it, we suggest you to install and use 
-[SAM](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) to test it 
-in your local machine:
+We have two Lambdas:
 
-##### For Gnu/Linux with python/pip:
+1. `oauthLambda.js` - This function will receive the Oauth hook from **slack** and save workspace token to be used later. As Trigger for this lambda you will need an API Gateway endpoint. You need to add this URL inside slack redirect URLs.
+
+2. `tapiocaLambda.js` - This function will require some kind of scheduled run, we use a CloudWatch Events/EventBridge, that is a CRON to schedule when it should run.
+
+## How to run
+
+First of all install the serverless framework in your machine. [Click here](https://www.serverless.com/framework/docs/getting-started/) to go to installation instructions.
+
+After install serverless, go to [slack apps](https://api.slack.com/apps) and create a new slack app. You will be redirected to a basic information about your app. Copy the `Client ID` and `Client Secret`.
+
+Open `serverless.yml`, go to environment section and fill the empty keys with your own `Client ID` and `Client Secret`. If you want, change the group size, this variable represent how many people will be added in the conversation.
+
+Use the [AWS Cron Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html) to select the date and time. Don't forget, AWS work with UTC, so remember to calculate the time based in your current location.
+
+And, probably you will need to change the s3BucketName variable (inside `serverless.yml`) because s3 buckets are global and the name must be unique.
+
+Now, execute in your terminal:
+
 ```bash
-pip install -U pip setuptools
+serverless deploy --stage=production
 ```
 
-##### For Mac OS:
+Copy the Api Gateway URL from the output. You will need to put this URL on your slack app Redirect URL. Also, allow this permissions: `channels:manage, channels:read, groups:read, im:read, mpim:read, users:read, groups:write, chat:write, im:write, mpim:write` inside Bot Scope.
+
+Then, create the empty file inside your bucket:
+
 ```bash
-brew install aws/tap/aws-sam-cli
+aws s3api put-object --bucket tapioca-slack --key slack-credentials --body slack-credentials
 ```
 
-Then with SAM installed you can trigger events to test like a real **AWS Lambda** call.
- 
-You will need to get an Oauth code from **slack**, that you can get when you give give access to the application to your
-workspace, replace this code on `events/event.json`, on `queryStringParameters` on `code`, unfortunately that token is 
-for a single use only, so you will need to get a new one every time you run locally.
+This file will be used to store the auth token from slack.
 
-Then to test, the group creation and token saving, run inside **tapioca** folder:
-```bash
-sam local invoke "Oauth" --event events/event.json
-```
+And Finally, install in your slack the tapioca. You need to go to `Manage Distribution` and click `Add to Slack`.
 
-And then to trigger conversation making run:
+So at this point, you will see a new channel call `tapioca-time` in your slack :)
 
-```bash
-sam local invoke "Tapioca"
-```                       
-Then you run conversation making lambda, if everything works as they should, you have the **tapioca-time** channel on
-your **slack** you must see a new conversation with you and other friends who also are in the channel.                  
+## License
 
+This repo is a clone of [yuca-live/tapioca](https://github.com/yuca-live/tapioca). We change some things but use their code.
 
-##### Required ENV vars
- - `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`: if you need help to get those values: 
-        [AWS: Understanding and Getting Your Security Credentials](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html).
- - `S3_BUCKET_NAME`: the name of bucket **tapioca** will use to save your files.
- - `S3_TOKEN_FILE_NAME`: the name of the file inside the `S3_BUCKET_NAME` that will hold the **slack** oauth token.
- - `APP_CLIENT_ID` and `APP_CLIENT_SECRET`: are your **slack** app client_id and secret.
-        You get these values when you create your **slack app**, check 
-        [Create a Slack app and authenticate with Postman](https://api.slack.com/tutorials/slack-apps-and-postman)
- - `SUCCESS_TAPIOCA_PAGE`: the redirect url of success page.
- - `FAIL_TAPIOCA_PAGE`: the redirect url in case some error happens.
-
-
-### Building
-
-There is a script called `build.sh` that will assembly two ZIP files so you can upload on **AWS Lambda**, one for **Oauth** 
-and other for **Tapioca**.
-
-# Contributing
-If you want to make this tool even more awesome, please check [CONTRIBUTING](CONTRIBUTING.md) before start. 
-
-# License
-We use [MIT License](https://choosealicense.com/licenses/mit/) and any contribution to this project will automatically accept this license. 
-
-Please, check our [LICENSE](LICENSE.txt) file for more information.
+Please, check their [LICENSE](LICENSE.txt) file for more information.

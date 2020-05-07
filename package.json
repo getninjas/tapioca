@@ -6,14 +6,14 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/yuca-live/tapioca"
+    "url": "https://github.com/getninjas/tapioca"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/yuca-live/tapioca/issues"
+    "url": "https://github.com/getninjas/tapioca/issues"
   },
-  "homepage": "https://github.com/yuca-live/tapioca#readme",
+  "homepage": "https://github.com/getninjas/tapioca#readme",
   "dependencies": {
     "aws-sdk": "^2.647.0",
     "request": "^2.88.2",
