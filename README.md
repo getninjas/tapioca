@@ -42,7 +42,7 @@ After install serverless, go to [slack apps](https://api.slack.com/apps) and cre
 
 Open `serverless.yml`, go to environment section and fill the empty keys with your own `Client ID` and `Client Secret`. If you want, change the group size, this variable represent how many people will be added in the conversation.
 
-Use the [AWS Cron Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html) to select the date and time.
+Use the [AWS Cron Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html) to select the date and time. Don't forget, AWS work with UTC, so remember to calculate the time based in your current location.
 
 And, probably you will need to change the s3BucketName variable (inside `serverless.yml`) because s3 buckets are global and the name must be unique.
 
